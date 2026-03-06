@@ -1,0 +1,11 @@
+C:\Users\PC\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\Desktop\LTWNC\FinancialPlatform.Core\bin\Debug\net8.0\FinancialPlatform.Core.deps.json
+C:\Users\PC\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\Desktop\LTWNC\FinancialPlatform.Core\bin\Debug\net8.0\FinancialPlatform.Core.dll
+C:\Users\PC\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\Desktop\LTWNC\FinancialPlatform.Core\bin\Debug\net8.0\FinancialPlatform.Core.pdb
+C:\Users\PC\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\Desktop\LTWNC\FinancialPlatform.Core\obj\Debug\net8.0\FinancialPlatform.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\PC\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\Desktop\LTWNC\FinancialPlatform.Core\obj\Debug\net8.0\FinancialPlatform.Core.AssemblyInfoInputs.cache
+C:\Users\PC\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\Desktop\LTWNC\FinancialPlatform.Core\obj\Debug\net8.0\FinancialPlatform.Core.AssemblyInfo.cs
+C:\Users\PC\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\Desktop\LTWNC\FinancialPlatform.Core\obj\Debug\net8.0\FinancialPlatform.Core.csproj.CoreCompileInputs.cache
+C:\Users\PC\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\Desktop\LTWNC\FinancialPlatform.Core\obj\Debug\net8.0\FinancialPlatform.Core.dll
+C:\Users\PC\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\Desktop\LTWNC\FinancialPlatform.Core\obj\Debug\net8.0\refint\FinancialPlatform.Core.dll
+C:\Users\PC\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\Desktop\LTWNC\FinancialPlatform.Core\obj\Debug\net8.0\FinancialPlatform.Core.pdb
+C:\Users\PC\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\Desktop\LTWNC\FinancialPlatform.Core\obj\Debug\net8.0\ref\FinancialPlatform.Core.dll

@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\buildMultiTargeting\FinancialPlatform.WebUI.props" />
+</Project>

@@ -1,0 +1,67 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Market Dashboard";
+}
+
+<div class="text-center mb-4">
+    <h1 class="display-4">Financial Market Monitor</h1>
+    <p>Real-time data powered by SignalR & Binance</p>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="my-0 font-weight-normal">Bitcoin (BTC/USDT)</h4>
+            </div>
+            <div class="card-body text-center">
+                <h1 class="card-title pricing-card-title" id="price-display">Loading...</h1>
+                <ul class="list-unstyled mt-3 mb-4">
+                    <li>RSI (14): <strong id="rsi-display">--</strong></li>
+                    <li>Last Update: <span id="time-display">--</span></li>
+                </ul>
+                <button type="button" class="btn btn-lg btn-block btn-outline-primary">View Details</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Thư viện SignalR Client -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js"></script>
+
+<script>
+    // 1. Tạo kết nối
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/marketHub")
+        .build();
+
+    // 2. Lắng nghe sự kiện "ReceiveMarketUpdate" từ Server
+    connection.on("ReceiveMarketUpdate", function (data) {
+        const priceEl = document.getElementById("price-display");
+        const rsiEl = document.getElementById("rsi-display");
+        const timeEl = document.getElementById("time-display");
+
+        // Format tiền tệ
+        const formattedPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(data.price);
+        
+        // Hiệu ứng màu sắc (Xanh tăng / Đỏ giảm)
+        // Logic đơn giản: so sánh với giá cũ (nếu cần) hoặc chỉ hiển thị
+        priceEl.innerText = formattedPrice;
+        
+        // Hiển thị RSI
+        if(data.rsi) {
+            rsiEl.innerText = data.rsi.toFixed(2);
+            rsiEl.style.color = data.rsi > 70 ? "red" : (data.rsi < 30 ? "green" : "black");
+        }
+
+        timeEl.innerText = new Date(data.timestamp).toLocaleTimeString();
+    });
+
+    // 3. Bắt đầu kết nối
+    connection.start().then(function () {
+        console.log("SignalR Connected!");
+    }).catch(function (err) {
+        return console.error(err.toString());
+    });
+</script>

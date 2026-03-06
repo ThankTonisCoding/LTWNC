@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\FinancialPlatform.Core\FinancialPlatform.Core.csproj" />
+    <ProjectReference Include="..\FinancialPlatform.Application\FinancialPlatform.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Skender.Stock.Indicators" Version="2.7.1" />
+    <PackageReference Include="StackExchange.Redis" Version="2.10.14" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
