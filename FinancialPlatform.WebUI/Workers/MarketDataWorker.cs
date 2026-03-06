@@ -4,9 +4,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FinancialPlatform.Core.Entities;
+using FinancialPlatform.Core.Interfaces;
 using FinancialPlatform.Infrastructure.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
 using FinancialPlatform.WebUI.Hubs;
 using Microsoft.Extensions.Logging;
 using Skender.Stock.Indicators; // Thư viện tính chỉ số
@@ -18,15 +20,17 @@ namespace FinancialPlatform.WebUI.Workers
         private readonly ILogger<MarketDataWorker> _logger;
         private readonly BinanceService _binanceService;
         private readonly IHubContext<MarketHub> _hubContext;
+        private readonly IServiceProvider _serviceProvider;
         
         // Bộ nhớ tạm để lưu lịch sử giá phục vụ tính RSI (cần ít nhất 14 nến)
         private readonly List<Quote> _historyBuffer = new(); 
 
-        public MarketDataWorker(ILogger<MarketDataWorker> logger, BinanceService binanceService, IHubContext<MarketHub> hubContext)
+        public MarketDataWorker(ILogger<MarketDataWorker> logger, BinanceService binanceService, IHubContext<MarketHub> hubContext, IServiceProvider serviceProvider)
         {
             _logger = logger;
             _binanceService = binanceService;
             _hubContext = hubContext;
+            _serviceProvider = serviceProvider;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -79,6 +83,13 @@ namespace FinancialPlatform.WebUI.Workers
 
                         // 5. Bắn data qua SignalR tới tất cả client đang nghe
                         await _hubContext.Clients.All.SendAsync("ReceiveMarketUpdate", tick, stoppingToken);
+
+                        // 6. Lưu vào Database
+                        using (var scope = _serviceProvider.CreateScope())
+                        {
+                            var repository = scope.ServiceProvider.GetRequiredService<IMarketDataRepository>();
+                            await repository.AddTickAsync(tick);
+                        }
                     }
                 }
                 catch (Exception ex)

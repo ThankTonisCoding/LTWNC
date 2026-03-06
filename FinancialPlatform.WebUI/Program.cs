@@ -1,11 +1,22 @@
+using FinancialPlatform.Core.Interfaces;
+using FinancialPlatform.Infrastructure.Data;
 using FinancialPlatform.Infrastructure.Services;
 using FinancialPlatform.WebUI.Workers;
 using FinancialPlatform.WebUI.Hubs;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+
+// Đăng ký DbContext
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(connectionString));
+
+// Đăng ký Repository
+builder.Services.AddScoped<IMarketDataRepository, MarketDataRepository>();
 
 // 3. Đăng ký SignalR
 builder.Services.AddSignalR();
