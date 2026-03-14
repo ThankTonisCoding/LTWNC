@@ -13,3 +13,4 @@ C:\Users\PC\OneDrive - Ho Chi Minh City University of Foreign Languages and Info
 C:\Users\PC\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\Desktop\LTWNC\FinancialPlatform.Application\obj\Debug\net8.0\refint\FinancialPlatform.Application.dll
 C:\Users\PC\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\Desktop\LTWNC\FinancialPlatform.Application\obj\Debug\net8.0\FinancialPlatform.Application.pdb
 C:\Users\PC\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\Desktop\LTWNC\FinancialPlatform.Application\obj\Debug\net8.0\ref\FinancialPlatform.Application.dll
+C:\Users\PC\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\Desktop\LTWNC\FinancialPlatform.Application\obj\Debug\net8.0\FinancialPlatform.Application.sourcelink.json
