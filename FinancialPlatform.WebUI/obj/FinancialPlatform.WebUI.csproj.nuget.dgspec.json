@@ -170,6 +170,10 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "Microsoft.EntityFrameworkCore.SqlServer": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
             "Skender.Stock.Indicators": {
               "target": "Package",
               "version": "[2.7.1, )"
@@ -224,6 +228,9 @@
               "C:\\Users\\PC\\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\\Desktop\\LTWNC\\FinancialPlatform.Application\\FinancialPlatform.Application.csproj": {
                 "projectPath": "C:\\Users\\PC\\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\\Desktop\\LTWNC\\FinancialPlatform.Application\\FinancialPlatform.Application.csproj"
               },
+              "C:\\Users\\PC\\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\\Desktop\\LTWNC\\FinancialPlatform.Core\\FinancialPlatform.Core.csproj": {
+                "projectPath": "C:\\Users\\PC\\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\\Desktop\\LTWNC\\FinancialPlatform.Core\\FinancialPlatform.Core.csproj"
+              },
               "C:\\Users\\PC\\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\\Desktop\\LTWNC\\FinancialPlatform.Infrastructure\\FinancialPlatform.Infrastructure.csproj": {
                 "projectPath": "C:\\Users\\PC\\OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT\\Desktop\\LTWNC\\FinancialPlatform.Infrastructure\\FinancialPlatform.Infrastructure.csproj"
               }
@@ -244,6 +251,12 @@
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
+          "dependencies": {
+            "Microsoft.EntityFrameworkCore.SqlServer": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
