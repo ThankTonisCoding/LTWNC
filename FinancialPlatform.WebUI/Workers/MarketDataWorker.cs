@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FinancialPlatform.Application.DTOs;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,6 +25,7 @@ namespace FinancialPlatform.WebUI.Workers
         
         // Bộ nhớ tạm để lưu lịch sử giá phục vụ tính RSI (cần ít nhất 14 nến)
         private readonly List<Quote> _historyBuffer = new(); 
+        private readonly List<MarketTick> _dbBuffer = new(); // Bộ nhớ đệm gom lô trước khi lưu DB
 
         public MarketDataWorker(ILogger<MarketDataWorker> logger, BinanceService binanceService, IHubContext<MarketHub> hubContext, IServiceProvider serviceProvider)
         {
@@ -47,10 +49,19 @@ namespace FinancialPlatform.WebUI.Workers
                     if (tick != null)
                     {
                         // 2. Thêm vào bộ nhớ đệm để tính toán
+                        var lastQuote = _historyBuffer.LastOrDefault();
+                        var quoteDate = tick.Timestamp;
+                        
+                        // Thư viện Skender yêu cầu Date phải luôn tăng dần và không được trùng lặp
+                        if (lastQuote != null && quoteDate <= lastQuote.Date)
+                        {
+                            quoteDate = lastQuote.Date.AddMilliseconds(1);
+                        }
+
                         // Skender.Stock.Indicators dùng class Quote
                         _historyBuffer.Add(new Quote
                         {
-                            Date = tick.Timestamp,
+                            Date = quoteDate,
                             Close = tick.Price,
                             // Các trường khác (Open, High, Low) có thể để tạm bằng Close nếu chỉ tính RSI đơn giản
                             Open = tick.Price,
@@ -66,29 +77,54 @@ namespace FinancialPlatform.WebUI.Workers
                         }
 
                         // 3. Tính chỉ số RSI (Relative Strength Index)
-                        // Cần ít nhất 14 nến để tính RSI(14)
-                        if (_historyBuffer.Count >= 14)
+                        try
                         {
-                            var rsiResults = _historyBuffer.GetRsi(14);
-                            var latestRsi = rsiResults.LastOrDefault();
-                            
-                            if (latestRsi != null && latestRsi.Rsi != null)
+                            // Skender an toàn nhất khi có từ 15 nến trở lên
+                            if (_historyBuffer.Count >= 15)
                             {
-                                tick.RSI = (double)latestRsi.Rsi;
+                                var rsiResults = _historyBuffer.GetRsi(14);
+                                var latestRsi = rsiResults.LastOrDefault();
+                                
+                                if (latestRsi != null && latestRsi.Rsi != null)
+                                {
+                                    tick.RSI = (double)latestRsi.Rsi;
+                                }
                             }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning($"Chưa đủ dữ liệu để tính RSI hoặc lỗi RSI: {ex.Message}");
                         }
 
                         // 4. Log ra màn hình console để kiểm tra
                         _logger.LogInformation($"Symbol: {tick.Symbol} | Price: {tick.Price:C} | RSI: {tick.RSI:F2}");
 
-                        // 5. Bắn data qua SignalR tới tất cả client đang nghe
-                        await _hubContext.Clients.All.SendAsync("ReceiveMarketUpdate", tick, stoppingToken);
-
-                        // 6. Lưu vào Database
-                        using (var scope = _serviceProvider.CreateScope())
+                        // 5. Tạo DTO và bắn data qua SignalR tới đúng group client đang nghe mã này
+                        var marketDataDto = new MarketDataDto
                         {
-                            var repository = scope.ServiceProvider.GetRequiredService<IMarketDataRepository>();
-                            await repository.AddTickAsync(tick);
+                            Symbol = tick.Symbol,
+                            Price = tick.Price,
+                            RSI = tick.RSI,
+                            Timestamp = tick.Timestamp
+                        };
+                        
+                        // Gửi tới group có tên trùng với mã symbol (ví dụ: "BTCUSDT")
+                        await _hubContext.Clients.Group(tick.Symbol).SendAsync("ReceiveMarketUpdate", marketDataDto, stoppingToken);
+
+                        // 6. Tối ưu Giai đoạn 2: Gom lô (Batching) chống nghẽn SQL Server
+                        _dbBuffer.Add(tick);
+                        if (_dbBuffer.Count >= 15) // Gom 15 lần lấy giá (khoảng 30 giây) mới lưu 1 lần
+                        {
+                            using (var scope = _serviceProvider.CreateScope())
+                            {
+                                var repository = scope.ServiceProvider.GetRequiredService<IMarketDataRepository>();
+                                foreach (var item in _dbBuffer)
+                                {
+                                    await repository.AddTickAsync(item);
+                                }
+                            }
+                            _logger.LogInformation($"[DB] Đã lưu {_dbBuffer.Count} records vào SQL Server.");
+                            _dbBuffer.Clear();
                         }
                     }
                 }

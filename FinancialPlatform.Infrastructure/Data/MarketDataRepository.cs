@@ -23,14 +23,22 @@ namespace FinancialPlatform.Infrastructure.Data
             await _context.SaveChangesAsync();
         }
 
-        public Task<IEnumerable<MarketTick>> GetHistoryAsync(string symbol, DateTime from, DateTime to)
+        public async Task<IEnumerable<MarketTick>> GetHistoryAsync(string symbol, DateTime from, DateTime to)
         {
-            throw new NotImplementedException(); // Sẽ implement sau khi cần vẽ chart
+            // Truy vấn các tick trong khoảng thời gian cho trước và sắp xếp
+            return await _context.MarketTicks
+                .Where(t => t.Symbol == symbol && t.Timestamp >= from && t.Timestamp <= to)
+                .OrderBy(t => t.Timestamp)
+                .ToListAsync();
         }
 
-        public Task<MarketTick> GetLatestTickAsync(string symbol)
+        public async Task<MarketTick?> GetLatestTickAsync(string symbol)
         {
-            throw new NotImplementedException(); // Sẽ implement sau
+            // Lấy tick mới nhất của một mã bằng cách sắp xếp giảm dần theo thời gian và lấy cái đầu tiên
+            return await _context.MarketTicks
+                .Where(t => t.Symbol == symbol)
+                .OrderByDescending(t => t.Timestamp)
+                .FirstOrDefaultAsync();
         }
     }
 }

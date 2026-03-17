@@ -27,41 +27,114 @@
     </div>
 </div>
 
+<!-- Container chứa biểu đồ TradingView -->
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div id="tvchart" style="width: 100%; height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Thư viện SignalR Client -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+<!-- Thư viện TradingView Lightweight Charts -->
+<script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 
 <script>
+    "use strict";
+
+    let lastPrice = 0; // Biến để lưu giá trị trước đó, dùng cho việc so sánh
+    let lastChartTime = 0; // Biến để lưu mốc thời gian cuối cùng vẽ lên biểu đồ
+
+    // Khởi tạo Biểu đồ TradingView
+    const chartOptions = { layout: { textColor: 'black', background: { type: 'solid', color: 'white' } } };
+    const chart = LightweightCharts.createChart(document.getElementById('tvchart'), chartOptions);
+    const lineSeries = chart.addLineSeries({ 
+        color: '#2962FF', 
+        lineWidth: 2,
+        priceFormat: { type: 'price', precision: 2, minMove: 0.01 }
+    });
+
     // 1. Tạo kết nối
     const connection = new signalR.HubConnectionBuilder()
         .withUrl("/marketHub")
+        .withAutomaticReconnect() // Tự động kết nối lại
         .build();
 
     // 2. Lắng nghe sự kiện "ReceiveMarketUpdate" từ Server
     connection.on("ReceiveMarketUpdate", function (data) {
+        // Log ra console để bạn kiểm tra xem trình duyệt có nhận được data không (Nhấn F12 để xem)
+        console.log("Data nhận từ Server:", data);
+
         const priceEl = document.getElementById("price-display");
         const rsiEl = document.getElementById("rsi-display");
         const timeEl = document.getElementById("time-display");
-
+        
         // Format tiền tệ
         const formattedPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(data.price);
         
         // Hiệu ứng màu sắc (Xanh tăng / Đỏ giảm)
-        // Logic đơn giản: so sánh với giá cũ (nếu cần) hoặc chỉ hiển thị
         priceEl.innerText = formattedPrice;
+        if (lastPrice !== 0) {
+            if (data.price > lastPrice) {
+                priceEl.classList.remove("text-danger");
+                priceEl.classList.add("text-success");
+            } else if (data.price < lastPrice) {
+                priceEl.classList.remove("text-success");
+                priceEl.classList.add("text-danger");
+            }
+        }
+        lastPrice = data.price; // Cập nhật giá cuối
         
+        try {
+            let timeUnix = Math.floor(new Date(data.timestamp).getTime() / 1000);
+            
+            // Bắt buộc thời gian phải tăng dần để TradingView không văng lỗi
+            if (timeUnix <= lastChartTime) {
+                timeUnix = lastChartTime + 1;
+            }
+            lastChartTime = timeUnix;
+
+            // Cập nhật điểm ảnh mới lên biểu đồ TradingView
+            lineSeries.update({ time: timeUnix, value: data.price });
+        } catch (err) {
+            console.warn("Lỗi cập nhật biểu đồ (bỏ qua để hiển thị giá tiếp):", err);
+        }
+
         // Hiển thị RSI
         if(data.rsi) {
             rsiEl.innerText = data.rsi.toFixed(2);
-            rsiEl.style.color = data.rsi > 70 ? "red" : (data.rsi < 30 ? "green" : "black");
+            // Dùng class của Bootstrap để tô màu
+            const rsiStrongEl = rsiEl.parentElement; // Lấy thẻ <strong>
+            rsiStrongEl.classList.remove("text-danger", "text-success");
+            if (data.rsi > 70) {
+                rsiStrongEl.classList.add("text-danger"); // Quá mua
+            } else if (data.rsi < 30) {
+                rsiStrongEl.classList.add("text-success"); // Quá bán
+            }
         }
 
         timeEl.innerText = new Date(data.timestamp).toLocaleTimeString();
     });
 
     // 3. Bắt đầu kết nối
-    connection.start().then(function () {
-        console.log("SignalR Connected!");
-    }).catch(function (err) {
-        return console.error(err.toString());
-    });
+    async function start() {
+        try {
+            await connection.start();
+            console.log("SignalR Connected.");
+            // SAU KHI KẾT NỐI, THAM GIA VÀO GROUP ĐỂ NHẬN DATA
+            await connection.invoke("JoinGroup", "BTCUSDT");
+            console.log("Joined group 'BTCUSDT'.");
+        } catch (err) {
+            console.error(err.toString());
+            setTimeout(start, 5000); // Thử lại sau 5 giây nếu lỗi
+        }
+    };
+
+    // Bắt đầu quá trình kết nối
+    start();
+
 </script>
