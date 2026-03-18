@@ -35,6 +35,12 @@ namespace FinancialPlatform.WebUI.Controllers
                 request.StopLoss, 
                 request.TakeProfit
             );
+            // Tách vòng lặp JSON (Ngăn lỗi 500 Object Cycle của Entity Framework)
+            if (order != null)
+            {
+                order.User = null;
+                order.Asset = null;
+            }
 
             return Ok(new { Message = "Đã nhận lệnh", OrderDetails = order });
         }
