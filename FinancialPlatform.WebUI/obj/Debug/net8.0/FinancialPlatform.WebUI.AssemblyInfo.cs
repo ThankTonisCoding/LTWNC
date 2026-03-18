@@ -10,10 +10,11 @@
 using System;
 using System.Reflection;
 
+[assembly: Microsoft.AspNetCore.Identity.UI.UIFrameworkAttribute("Bootstrap5")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("FinancialPlatform.WebUI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c97f40f8bc2d4a7cea65c971ddb44c6bd022830d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0a06cc01651af3faabb194ece5c5b3762e4ebb57")]
 [assembly: System.Reflection.AssemblyProductAttribute("FinancialPlatform.WebUI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FinancialPlatform.WebUI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -12,6 +12,8 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using FinancialPlatform.WebUI.Hubs;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 using Skender.Stock.Indicators; // Thư viện tính chỉ số
 
 namespace FinancialPlatform.WebUI.Workers
@@ -22,17 +24,19 @@ namespace FinancialPlatform.WebUI.Workers
         private readonly BinanceService _binanceService;
         private readonly IHubContext<MarketHub> _hubContext;
         private readonly IServiceProvider _serviceProvider;
+        private readonly IDistributedCache _cache;
         
         // Bộ nhớ tạm để lưu lịch sử giá phục vụ tính RSI (cần ít nhất 14 nến)
         private readonly List<Quote> _historyBuffer = new(); 
         private readonly List<MarketTick> _dbBuffer = new(); // Bộ nhớ đệm gom lô trước khi lưu DB
 
-        public MarketDataWorker(ILogger<MarketDataWorker> logger, BinanceService binanceService, IHubContext<MarketHub> hubContext, IServiceProvider serviceProvider)
+        public MarketDataWorker(ILogger<MarketDataWorker> logger, BinanceService binanceService, IHubContext<MarketHub> hubContext, IServiceProvider serviceProvider, IDistributedCache cache)
         {
             _logger = logger;
             _binanceService = binanceService;
             _hubContext = hubContext;
             _serviceProvider = serviceProvider;
+            _cache = cache;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -100,6 +104,11 @@ namespace FinancialPlatform.WebUI.Workers
                         _logger.LogInformation($"Symbol: {tick.Symbol} | Price: {tick.Price:C} | RSI: {tick.RSI:F2}");
 
                         // 5. Tạo DTO và bắn data qua SignalR tới đúng group client đang nghe mã này
+                        if (tick.RSI.HasValue && (double.IsNaN(tick.RSI.Value) || double.IsInfinity(tick.RSI.Value)))
+                        {
+                            tick.RSI = 0; // Thay thế NaN bằng 0 để tránh lỗi Serialize JSON
+                        }
+
                         var marketDataDto = new MarketDataDto
                         {
                             Symbol = tick.Symbol,
@@ -108,29 +117,59 @@ namespace FinancialPlatform.WebUI.Workers
                             Timestamp = tick.Timestamp
                         };
                         
+                        // Lưu giá mới nhất vào Redis Cache để các API khác đọc mà không cần gọi DB
+                        try 
+                        {
+                            var cacheKey = $"LATEST_PRICE_{tick.Symbol}";
+                            var cacheOptions = new DistributedCacheEntryOptions
+                            {
+                                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                            };
+                            await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(marketDataDto), cacheOptions, stoppingToken);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning($"Không thể lưu vào Redis (có thể Redis chưa bật): {ex.Message}");
+                        }
+                        
                         // Gửi tới group có tên trùng với mã symbol (ví dụ: "BTCUSDT")
-                        await _hubContext.Clients.Group(tick.Symbol).SendAsync("ReceiveMarketUpdate", marketDataDto, stoppingToken);
+                        try
+                        {
+                            await _hubContext.Clients.Group(tick.Symbol).SendAsync("ReceiveMarketUpdate", marketDataDto, stoppingToken);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning($"Lỗi SignalR: {ex.Message}");
+                        }
 
                         // 6. Tối ưu Giai đoạn 2: Gom lô (Batching) chống nghẽn SQL Server
                         _dbBuffer.Add(tick);
                         if (_dbBuffer.Count >= 15) // Gom 15 lần lấy giá (khoảng 30 giây) mới lưu 1 lần
                         {
-                            using (var scope = _serviceProvider.CreateScope())
+                            try
                             {
-                                var repository = scope.ServiceProvider.GetRequiredService<IMarketDataRepository>();
-                                foreach (var item in _dbBuffer)
+                                using (var scope = _serviceProvider.CreateScope())
                                 {
-                                    await repository.AddTickAsync(item);
+                                    var repository = scope.ServiceProvider.GetRequiredService<IMarketDataRepository>();
+                                    foreach (var item in _dbBuffer)
+                                    {
+                                        await repository.AddTickAsync(item);
+                                    }
                                 }
+                                _logger.LogInformation($"[DB] Đã lưu {_dbBuffer.Count} records vào SQL Server.");
+                                _dbBuffer.Clear();
                             }
-                            _logger.LogInformation($"[DB] Đã lưu {_dbBuffer.Count} records vào SQL Server.");
-                            _dbBuffer.Clear();
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning($"Không thể lưu vào SQL Server (DB chưa bật hoặc chưa Update): {ex.Message}");
+                                _dbBuffer.Clear(); // Xóa buffer để tránh tràn RAM
+                            }
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error fetching market data");
+                    _logger.LogError(ex, $"Error fetching market data: {ex.Message} | Trace: {ex.StackTrace}");
                 }
 
                 // Chờ 2 giây trước khi gọi lần tiếp theo (tránh bị Binance chặn IP)
