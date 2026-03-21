@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("FinancialPlatform.WebUI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1ec424f95003f5af908baf4dd60989a3eb49ed48")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+95db4cb928884585ba93127ddb6fd9d191185798")]
 [assembly: System.Reflection.AssemblyProductAttribute("FinancialPlatform.WebUI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FinancialPlatform.WebUI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

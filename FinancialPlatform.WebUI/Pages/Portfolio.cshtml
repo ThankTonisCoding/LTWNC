@@ -1,0 +1,157 @@
+@page
+@model PortfolioModel
+@{
+    ViewData["Title"] = "My Portfolio";
+}
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card shadow-sm mb-4 border-success">
+            <div class="card-header bg-success text-white">
+                <h4 class="my-0 font-weight-normal">Account Summary</h4>
+            </div>
+            <div class="card-body">
+                <h5>Cash Balance: <span id="cash-balance" class="text-primary fw-bold">Loading...</span></h5>
+                <h5>Unrealized P&L: <span id="total-pnl" class="fw-bold">Loading...</span></h5>
+                <hr />
+                <h4>Total Equity: <span id="total-equity" class="text-success fw-bold">Loading...</span></h4>
+            </div>
+        </div>
+        
+        <div class="alert alert-info shadow-sm">
+            <strong>Live Market Data</strong> <br/>
+            Current BTC Price: <span id="live-btc-price" class="fw-bold fs-5 text-primary">--</span>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark text-white">
+                <h4 class="my-0 font-weight-normal">Open Positions</h4>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Side</th>
+                            <th>Amount</th>
+                            <th>Entry Price</th>
+                            <th>Current Price</th>
+                            <th>P&L</th>
+                        </tr>
+                    </thead>
+                    <tbody id="positions-table">
+                        <tr><td colspan="6" class="text-center py-4">Loading portfolio data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+
+<script>
+    "use strict";
+    
+    let cashBalance = 0;
+    let openPositions = [];
+
+    const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+    async function initPortfolio() {
+        try {
+            const userId = "test-user-1";
+            const response = await fetch(`/api/portfolio/${userId}`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                cashBalance = data.cashBalance;
+                openPositions = data.openOrders || [];
+                
+                document.getElementById("cash-balance").innerText = formatter.format(cashBalance);
+                renderPositions(0); // initial render with 0 current price
+            } else {
+                document.getElementById("cash-balance").innerText = "Error loading";
+            }
+        } catch (err) {
+            console.error("Lỗi khi tải Portfolio", err);
+        }
+    }
+
+    function renderPositions(currentPrice) {
+        const tbody = document.getElementById("positions-table");
+        if (openPositions.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='6' class='text-center py-4'>You don't have any open positions right now.</td></tr>";
+            document.getElementById("total-pnl").innerText = formatter.format(0);
+            document.getElementById("total-equity").innerText = formatter.format(cashBalance);
+            return;
+        }
+
+        tbody.innerHTML = "";
+        let totalPnl = 0;
+
+        openPositions.forEach(pos => {
+            let pnl = 0;
+            let displayPrice = currentPrice === 0 ? "--" : formatter.format(currentPrice);
+
+            if (currentPrice > 0) {
+                if (pos.side === 'Buy') {
+                    pnl = (currentPrice - pos.entryPrice) * pos.amount;
+                } else {
+                    pnl = (pos.entryPrice - currentPrice) * pos.amount;
+                }
+                totalPnl += pnl;
+            }
+
+            const pnlColor = pnl > 0 ? 'text-success' : (pnl < 0 ? 'text-danger' : '');
+            const pnlFormat = currentPrice === 0 ? "--" : (pnl > 0 ? "+" + formatter.format(pnl) : formatter.format(pnl));
+
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${pos.symbol}</strong></td>
+                    <td><span class="badge ${pos.side === 'Buy' ? 'bg-success' : 'bg-danger'}">${pos.side}</span></td>
+                    <td>${pos.amount}</td>
+                    <td>${formatter.format(pos.entryPrice)}</td>
+                    <td>${displayPrice}</td>
+                    <td class="${pnlColor}"><strong>${pnlFormat}</strong></td>
+                </tr>
+            `;
+        });
+
+        // Update Summary
+        let pnlSummaryColor = totalPnl > 0 ? 'text-success' : (totalPnl < 0 ? 'text-danger' : '');
+        let formattedTotalPnl = totalPnl > 0 ? "+" + formatter.format(totalPnl) : formatter.format(totalPnl);
+        document.getElementById("total-pnl").innerHTML = `<span class="${pnlSummaryColor}">${formattedTotalPnl}</span>`;
+        document.getElementById("total-equity").innerText = formatter.format(cashBalance + totalPnl);
+        
+        if(currentPrice > 0) {
+            document.getElementById("live-btc-price").innerText = formatter.format(currentPrice);
+        }
+    }
+
+    // Connect to SignalR
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/marketHub")
+        .withAutomaticReconnect()
+        .build();
+
+    connection.on("ReceiveMarketUpdate", function (data) {
+        if (data.symbol === "BTCUSDT") {
+            renderPositions(data.price);
+        }
+    });
+
+    async function startSignalR() {
+        try {
+            await connection.start();
+            await connection.invoke("JoinGroup", "BTCUSDT");
+        } catch (err) {
+            setTimeout(startSignalR, 5000);
+        }
+    }
+
+    // Khởi chạy
+    initPortfolio().then(() => startSignalR());
+</script>
