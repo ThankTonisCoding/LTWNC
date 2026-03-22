@@ -1,16 +1,20 @@
-using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
 
 namespace FinancialPlatform.Core.Entities
 {
     public class Portfolio
     {
         public int Id { get; set; }
+        
+        [Required]
         public string UserId { get; set; } = string.Empty;
         
-        [Column(TypeName = "decimal(18,4)")]
-        public decimal CashBalance { get; set; } // Số dư USD / VNĐ (Ví ảo)
-        
-        // Navigation properties
-        public virtual ApplicationUser? User { get; set; }
+        public decimal CashBalance { get; set; }
+
+        // Mật mã cho Optimistic Concurrency (Chống Race-Condition khi nhiều luồng cùng trừ tiền)
+        [Timestamp]
+        public byte[]? RowVersion { get; set; }
+
+        public ApplicationUser? User { get; set; }
     }
 }

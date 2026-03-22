@@ -175,10 +175,17 @@ namespace FinancialPlatform.Infrastructure.Services
                 await transaction.CommitAsync();
                 return order.Status == "Filled";
             }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogWarning($"Xung đột giao dịch (Race-Condition) khi trừ tiền user {order.UserId}. Mã lệnh: {order.Id}. Lệnh đã bị hủy để bảo vệ toàn vẹn dữ liệu.");
+                // Tùy chọn: Có thể cấu hình Retry logic ở đây.
+                return false;
+            }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                _logger.LogError(ex, "Lỗi khi khớp lệnh");
+                _logger.LogError(ex, "Lỗi bất ngờ khi khớp lệnh");
                 return false;
             }
         }

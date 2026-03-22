@@ -48,11 +48,23 @@ namespace FinancialPlatform.WebUI.Controllers
 
     public class PlaceOrderRequest
     {
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(20)]
         public string Symbol { get; set; } = string.Empty;
-        public string Side { get; set; } = "Buy"; // "Buy" hoặc "Sell"
-        public string Type { get; set; } = "Market"; // "Market" khớp ngay lập tức theo giá Redis
-        public decimal Amount { get; set; } // Số lượng coin
-        public decimal? LimitPrice { get; set; } // Dành cho Type = "Limit"
+        
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.RegularExpression("^(Buy|Sell)$", ErrorMessage = "Side must be either Buy or Sell.")]
+        public string Side { get; set; } = "Buy";
+        
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.RegularExpression("^(Market|Limit)$", ErrorMessage = "Type must be either Market or Limit.")]
+        public string Type { get; set; } = "Market";
+        
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.Range(0.000001, 1000000, ErrorMessage = "Amount must be greater than 0.")]
+        public decimal Amount { get; set; }
+        
+        public decimal? LimitPrice { get; set; }
         public decimal? StopLoss { get; set; }
         public decimal? TakeProfit { get; set; }
     }

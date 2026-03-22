@@ -7,18 +7,28 @@ using Microsoft.ML.Data;
 
 namespace FinancialPlatform.Infrastructure.Services
 {
+    /// <summary>
+    /// Represents a single time-series data point for Relative Strength Index.
+    /// </summary>
     public class RsiData
     {
         public float TimeIndex { get; set; }
         public float RsiValue { get; set; }
     }
 
+    /// <summary>
+    /// Represents the predicted output structure from the ML.NET Regression algorithm.
+    /// </summary>
     public class RsiPrediction
     {
         [ColumnName("Score")]
         public float PredictedRsi { get; set; }
     }
 
+    /// <summary>
+    /// Contains the core Machine Learning execution pipeline for Market Prediction.
+    /// Implements standard Data Science Object-Oriented patterns (Transform -> Fit -> Evaluate).
+    /// </summary>
     public class MarketPredictorService : IMarketPredictorService
     {
         private readonly MLContext _mlContext;
@@ -28,29 +38,55 @@ namespace FinancialPlatform.Infrastructure.Services
             _mlContext = new MLContext(seed: 1);
         }
 
+        /// <summary>
+        /// Orchestrates the Machine Learning pipeline to predict Market Signals.
+        /// </summary>
+        /// <param name="recentRsiValues">A sequence of recent RSI values to act as the Training Dataset.</param>
+        /// <returns>A string representing the computed signal: "BUY", "SELL", or "HOLD".</returns>
         public string PredictSignal(IEnumerable<double> recentRsiValues)
         {
             var rsiList = recentRsiValues.ToList();
-            if (rsiList.Count < 5) return "HOLD"; // Quá ít dữ liệu để Train
+            if (rsiList.Count < 5) return "HOLD"; // Insufficient data for regression
 
-            // 1. Chuyển đổi dữ liệu sang định dạng ML.NET học
+            // Step 1: Data Transformation (Equivalent to `Transform` in Python)
+            IDataView trainingData = TransformData(rsiList);
+
+            // Step 2: Model Training (Equivalent to `Fit` in Python)
+            ITransformer trainedModel = FitModel(trainingData);
+
+            // Step 3: Inference and Evaluation (Equivalent to `Evaluate/Predict` in Python)
+            return EvaluateSignal(trainedModel, rsiList);
+        }
+
+        /// <summary>
+        /// Transforms raw numeric sequences into ML.NET IDataView struct format.
+        /// </summary>
+        private IDataView TransformData(List<double> rsiList)
+        {
             var dataList = new List<RsiData>();
             for (int i = 0; i < rsiList.Count; i++)
             {
                 dataList.Add(new RsiData { TimeIndex = i, RsiValue = (float)rsiList[i] });
             }
+            return _mlContext.Data.LoadFromEnumerable(dataList);
+        }
 
-            // 2. Tải dữ liệu vào IDataView
-            IDataView trainingData = _mlContext.Data.LoadFromEnumerable(dataList);
-
-            // 3. Cấu hình Pipeline Hồi quy tuyến tính (Dùng Sdca mặc định của ML.NET dể tìm Trend)
+        /// <summary>
+        /// Trains a linear statistical model using Stochastic Dual Coordinate Ascent (SDCA) Regression.
+        /// </summary>
+        private ITransformer FitModel(IDataView trainingData)
+        {
             var pipeline = _mlContext.Transforms.Concatenate("Features", "TimeIndex")
                 .Append(_mlContext.Regression.Trainers.Sdca(labelColumnName: "RsiValue", featureColumnName: "Features"));
+            
+            return pipeline.Fit(trainingData);
+        }
 
-            // 4. Đào tạo Model AI (Siêu tốc vì chỉ có vài dữ liệu)
-            var model = pipeline.Fit(trainingData);
-
-            // 5. Dự đoán RSI tiếp theo
+        /// <summary>
+        /// Evaluates the trained model against the next index to predict the upcoming trend slope.
+        /// </summary>
+        private string EvaluateSignal(ITransformer model, List<double> rsiList)
+        {
             var predictionEngine = _mlContext.Model.CreatePredictionEngine<RsiData, RsiPrediction>(model);
             
             var nextIndex = rsiList.Count;
@@ -59,19 +95,14 @@ namespace FinancialPlatform.Infrastructure.Services
             float lastRsi = (float)rsiList.Last();
             float predictedRsi = prediction.PredictedRsi;
             
-            // 6. Xây dựng logic Khuyến nghị Mua/Bán dựa trên AI Prediction
+            // Calculate trend slope/gradient
             float slope = predictedRsi - lastRsi;
 
-            // Nếu RSI nhỏ (đang giảm sâu) mà cắm đầu quay lên mạn (Độ dốc cực dương) -> AI báo MUA
-            if (lastRsi < 40 && slope > 0.5f)
-            {
-                return "BUY";
-            }
-            // Nếu RSI lớn (đang tăng quá nóng) mà cắm đầu quay xuống (Độ dốc cực âm) -> AI báo BÁN
-            if (lastRsi > 60 && slope < -0.5f)
-            {
-                return "SELL";
-            }
+            // Strategy: Buy the Deepest Dip if turning upward
+            if (lastRsi < 40 && slope > 0.5f) return "BUY";
+            
+            // Strategy: Sell the Peak if turning downward
+            if (lastRsi > 60 && slope < -0.5f) return "SELL";
 
             return "HOLD";
         }
