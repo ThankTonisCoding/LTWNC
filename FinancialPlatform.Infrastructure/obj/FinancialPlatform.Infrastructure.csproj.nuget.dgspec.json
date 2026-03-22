@@ -227,6 +227,10 @@
               "target": "Package",
               "version": "[8.0.0, )"
             },
+            "Microsoft.ML": {
+              "target": "Package",
+              "version": "[5.0.0, )"
+            },
             "Skender.Stock.Indicators": {
               "target": "Package",
               "version": "[2.7.1, )"

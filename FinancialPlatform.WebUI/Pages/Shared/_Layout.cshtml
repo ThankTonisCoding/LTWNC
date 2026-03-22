@@ -12,7 +12,7 @@
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">FinancialPlatform.WebUI</a>
+                <a class="navbar-brand fw-bold" asp-area="" asp-page="/Index">FinTech Platform</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -20,11 +20,39 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Market Dashboard</a>
+                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Bảng Giá Thị trường</a>
                         </li>
                         <li class="nav-item border-start ms-2 ps-2">
-                            <a class="nav-link fw-bold text-success" asp-area="" asp-page="/Portfolio">My Portfolio (Live P&L)</a>
+                            <a class="nav-link fw-bold text-success" asp-area="" asp-page="/Portfolio">Danh mục (Lãi/Lỗ Trực tiếp)</a>
                         </li>
+                    </ul>
+                    <ul class="navbar-nav">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <li class="nav-item me-3 mt-1">
+                                    <a class="nav-link fw-bold text-danger border border-danger rounded px-3" asp-area="" asp-page="/Admin/Dashboard">Quản Trị Viên</a>
+                                </li>
+                            }
+                            <li class="nav-item text-dark mt-2 me-3">
+                                Xin chào, <strong>@User.Identity.Name</strong>
+                            </li>
+                            <li class="nav-item">
+                                <form class="form-inline" asp-page="/Logout" method="post">
+                                    <button type="submit" class="nav-link btn btn-link text-danger fw-bold border-0 bg-transparent">Đăng xuất</button>
+                                </form>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-primary fw-bold" asp-area="" asp-page="/Login">Đăng nhập</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-success fw-bold" asp-area="" asp-page="/Register">Mở Tài Khoản</a>
+                            </li>
+                        }
                     </ul>
                 </div>
             </div>
@@ -38,7 +66,7 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2026 - FinancialPlatform.WebUI - <a asp-area="" asp-page="/Privacy">Privacy</a>
+            &copy; 2026 - FinTech Platform - <a asp-area="" asp-page="/Privacy">Điều khoản Tín dụng</a>
         </div>
     </footer>
 

@@ -22,6 +22,10 @@ build_property._RazorSourceGeneratorDebug =
 build_property.EffectiveAnalysisLevelStyle = 8.0
 build_property.EnableCodeStyleSeverity = 
 
+[C:/Users/PC/OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT/Desktop/LTWNC/FinancialPlatform.WebUI/Pages/Admin/Dashboard.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWRtaW5cRGFzaGJvYXJkLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/PC/OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT/Desktop/LTWNC/FinancialPlatform.WebUI/Pages/Error.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRXJyb3IuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
@@ -30,12 +34,24 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5kZXguY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/PC/OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT/Desktop/LTWNC/FinancialPlatform.WebUI/Pages/Login.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTG9naW4uY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/PC/OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT/Desktop/LTWNC/FinancialPlatform.WebUI/Pages/Logout.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTG9nb3V0LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/PC/OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT/Desktop/LTWNC/FinancialPlatform.WebUI/Pages/Portfolio.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUG9ydGZvbGlvLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/PC/OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT/Desktop/LTWNC/FinancialPlatform.WebUI/Pages/Privacy.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUHJpdmFjeS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/PC/OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT/Desktop/LTWNC/FinancialPlatform.WebUI/Pages/Register.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUmVnaXN0ZXIuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/PC/OneDrive - Ho Chi Minh City University of Foreign Languages and Information Technology - HUFLIT/Desktop/LTWNC/FinancialPlatform.WebUI/Pages/Shared/_ValidationScriptsPartial.cshtml]

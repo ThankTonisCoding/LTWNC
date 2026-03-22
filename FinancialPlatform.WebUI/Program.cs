@@ -18,9 +18,17 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// Add Identity
+// Add Identity and Roles
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = false)
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Login";
+    options.LogoutPath = "/Logout";
+    options.AccessDeniedPath = "/AccessDenied";
+});
 
 // Add Redis Cache
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -32,6 +40,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
 // Đăng ký Repository & Services
 builder.Services.AddScoped<IMarketDataRepository, MarketDataRepository>();
 builder.Services.AddScoped<ITradingService, TradingService>();
+builder.Services.AddSingleton<IMarketPredictorService, MarketPredictorService>();
 
 // 3. Đăng ký SignalR
 builder.Services.AddSignalR();
@@ -44,6 +53,32 @@ builder.Services.AddHostedService<MarketDataWorker>();
 builder.Services.AddHostedService<RiskManagementWorker>();
 
 var app = builder.Build();
+
+// Seed Admin Role and User
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    
+    // 1. Tạo Role "Admin"
+    if (!roleManager.RoleExistsAsync("Admin").GetAwaiter().GetResult())
+    {
+        roleManager.CreateAsync(new IdentityRole("Admin")).GetAwaiter().GetResult();
+    }
+    
+    // 2. Tạo User "admin@wallstreet.com" nếu chưa có
+    var adminEmail = "admin@wallstreet.com";
+    var adminUser = userManager.FindByEmailAsync(adminEmail).GetAwaiter().GetResult();
+    if (adminUser == null)
+    {
+        adminUser = new ApplicationUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true };
+        var result = userManager.CreateAsync(adminUser, "Admin@123").GetAwaiter().GetResult();
+        if (result.Succeeded)
+        {
+            userManager.AddToRoleAsync(adminUser, "Admin").GetAwaiter().GetResult();
+        }
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

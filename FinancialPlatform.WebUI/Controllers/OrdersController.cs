@@ -1,9 +1,12 @@
 using System.Threading.Tasks;
 using FinancialPlatform.Core.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace FinancialPlatform.WebUI.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class OrdersController : ControllerBase
@@ -18,11 +21,8 @@ namespace FinancialPlatform.WebUI.Controllers
         [HttpPost("place")]
         public async Task<IActionResult> PlaceOrder([FromBody] PlaceOrderRequest request)
         {
-            // Hardcode userId "user1" để dễ dàng test (Khi làm Frontend thật, sẽ lấy từ JWT Token/Cookie)
-            var userId = "test-user-1"; 
-
-            // Cấp ngay Ví ảo 10.000$ nếu user này chưa từng chơi
-            await _tradingService.InitializePaperWalletAsync(userId);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             // Đặt lệnh
             var order = await _tradingService.PlaceOrderAsync(

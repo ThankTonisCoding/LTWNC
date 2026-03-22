@@ -14,7 +14,7 @@ using FinancialPlatform.WebUI.Hubs;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Text.Json;
-using Skender.Stock.Indicators; // Thư viện tính chỉ số
+using Skender.Stock.Indicators;
 
 namespace FinancialPlatform.WebUI.Workers
 {
@@ -26,9 +26,12 @@ namespace FinancialPlatform.WebUI.Workers
         private readonly IServiceProvider _serviceProvider;
         private readonly IDistributedCache _cache;
         
-        // Bộ nhớ tạm để lưu lịch sử giá phục vụ tính RSI (cần ít nhất 14 nến)
-        private readonly List<Quote> _historyBuffer = new(); 
-        private readonly List<MarketTick> _dbBuffer = new(); // Bộ nhớ đệm gom lô trước khi lưu DB
+        // Mở rộng thành 6 tài sản Crypto hàng đầu
+        private readonly string[] _symbols = { "BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "ADAUSDT", "XRPUSDT" };
+        private readonly Dictionary<string, List<Quote>> _historyBuffers = new(); 
+        private readonly Dictionary<string, List<MarketTick>> _dbBuffers = new(); 
+        private readonly Dictionary<string, DateTime> _lastAIPredictionTime = new();
+        private readonly Dictionary<string, string> _aiSignals = new();
 
         public MarketDataWorker(ILogger<MarketDataWorker> logger, BinanceService binanceService, IHubContext<MarketHub> hubContext, IServiceProvider serviceProvider, IDistributedCache cache)
         {
@@ -37,143 +40,160 @@ namespace FinancialPlatform.WebUI.Workers
             _hubContext = hubContext;
             _serviceProvider = serviceProvider;
             _cache = cache;
+
+            // Khởi tạo bộ đệm riêng biệt cho từng Symbol
+            foreach (var symbol in _symbols)
+            {
+                _historyBuffers[symbol] = new List<Quote>();
+                _dbBuffers[symbol] = new List<MarketTick>();
+                _lastAIPredictionTime[symbol] = DateTime.UtcNow.AddSeconds(-20); // Đảm bảo lần đầu chạy ngay lập tức
+                _aiSignals[symbol] = "HOLD";
+            }
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Market Data Worker started.");
+            _logger.LogInformation("Market Data Worker started for Multiple Assets.");
 
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    // 1. Lấy giá BTCUSDT từ Binance
-                    var tick = await _binanceService.GetTickerAsync("BTCUSDT");
+                    // Chạy lấy giá song song định kỳ cho tất cả 6 Symbols
+                    var tasks = _symbols.Select(symbol => ProcessSymbolAsync(symbol, stoppingToken));
+                    await Task.WhenAll(tasks);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Error in MarketDataWorker loop: {ex.Message}");
+                }
 
-                    if (tick != null)
+                await Task.Delay(2000, stoppingToken);
+            }
+        }
+
+        private async Task ProcessSymbolAsync(string symbol, CancellationToken stoppingToken)
+        {
+            try
+            {
+                var tick = await _binanceService.GetTickerAsync(symbol);
+                if (tick == null) return;
+
+                var history = _historyBuffers[symbol];
+                var dbBuffer = _dbBuffers[symbol];
+
+                var lastQuote = history.LastOrDefault();
+                var quoteDate = tick.Timestamp;
+                
+                if (lastQuote != null && quoteDate <= lastQuote.Date)
+                {
+                    quoteDate = lastQuote.Date.AddMilliseconds(1);
+                }
+
+                history.Add(new Quote
+                {
+                    Date = quoteDate,
+                    Close = tick.Price,
+                    Open = tick.Price,
+                    High = tick.Price,
+                    Low = tick.Price,
+                    Volume = 0
+                });
+
+                if (history.Count > 200) history.RemoveAt(0);
+
+                IEnumerable<RsiResult>? rsiResults = null;
+                try
+                {
+                    if (history.Count >= 15)
                     {
-                        // 2. Thêm vào bộ nhớ đệm để tính toán
-                        var lastQuote = _historyBuffer.LastOrDefault();
-                        var quoteDate = tick.Timestamp;
-                        
-                        // Thư viện Skender yêu cầu Date phải luôn tăng dần và không được trùng lặp
-                        if (lastQuote != null && quoteDate <= lastQuote.Date)
-                        {
-                            quoteDate = lastQuote.Date.AddMilliseconds(1);
-                        }
-
-                        // Skender.Stock.Indicators dùng class Quote
-                        _historyBuffer.Add(new Quote
-                        {
-                            Date = quoteDate,
-                            Close = tick.Price,
-                            // Các trường khác (Open, High, Low) có thể để tạm bằng Close nếu chỉ tính RSI đơn giản
-                            Open = tick.Price,
-                            High = tick.Price,
-                            Low = tick.Price,
-                            Volume = 0
-                        });
-
-                        // Giới hạn bộ nhớ đệm (ví dụ chỉ giữ 200 nến gần nhất để tiết kiệm RAM)
-                        if (_historyBuffer.Count > 200) 
-                        {
-                            _historyBuffer.RemoveAt(0);
-                        }
-
-                        // 3. Tính chỉ số RSI (Relative Strength Index)
-                        try
-                        {
-                            // Skender an toàn nhất khi có từ 15 nến trở lên
-                            if (_historyBuffer.Count >= 15)
-                            {
-                                var rsiResults = _historyBuffer.GetRsi(14);
-                                var latestRsi = rsiResults.LastOrDefault();
-                                
-                                if (latestRsi != null && latestRsi.Rsi != null)
-                                {
-                                    tick.RSI = (double)latestRsi.Rsi;
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning($"Chưa đủ dữ liệu để tính RSI hoặc lỗi RSI: {ex.Message}");
-                        }
-
-                        // 4. Log ra màn hình console để kiểm tra
-                        _logger.LogInformation($"Symbol: {tick.Symbol} | Price: {tick.Price:C} | RSI: {tick.RSI:F2}");
-
-                        // 5. Tạo DTO và bắn data qua SignalR tới đúng group client đang nghe mã này
-                        if (tick.RSI.HasValue && (double.IsNaN(tick.RSI.Value) || double.IsInfinity(tick.RSI.Value)))
-                        {
-                            tick.RSI = 0; // Thay thế NaN bằng 0 để tránh lỗi Serialize JSON
-                        }
-
-                        var marketDataDto = new MarketDataDto
-                        {
-                            Symbol = tick.Symbol,
-                            Price = tick.Price,
-                            RSI = tick.RSI,
-                            Timestamp = tick.Timestamp
-                        };
-                        
-                        // Lưu giá mới nhất vào Redis Cache để các API khác đọc mà không cần gọi DB
-                        try 
-                        {
-                            var cacheKey = $"LATEST_PRICE_{tick.Symbol}";
-                            var cacheOptions = new DistributedCacheEntryOptions
-                            {
-                                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
-                            };
-                            await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(marketDataDto), cacheOptions, stoppingToken);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning($"Không thể lưu vào Redis (có thể Redis chưa bật): {ex.Message}");
-                        }
-                        
-                        // Gửi tới group có tên trùng với mã symbol (ví dụ: "BTCUSDT")
-                        try
-                        {
-                            await _hubContext.Clients.Group(tick.Symbol).SendAsync("ReceiveMarketUpdate", marketDataDto, stoppingToken);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning($"Lỗi SignalR: {ex.Message}");
-                        }
-
-                        // 6. Tối ưu Giai đoạn 2: Gom lô (Batching) chống nghẽn SQL Server
-                        _dbBuffer.Add(tick);
-                        if (_dbBuffer.Count >= 15) // Gom 15 lần lấy giá (khoảng 30 giây) mới lưu 1 lần
-                        {
-                            try
-                            {
-                                using (var scope = _serviceProvider.CreateScope())
-                                {
-                                    var repository = scope.ServiceProvider.GetRequiredService<IMarketDataRepository>();
-                                    foreach (var item in _dbBuffer)
-                                    {
-                                        await repository.AddTickAsync(item);
-                                    }
-                                }
-                                _logger.LogInformation($"[DB] Đã lưu {_dbBuffer.Count} records vào SQL Server.");
-                                _dbBuffer.Clear();
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogWarning($"Không thể lưu vào SQL Server (DB chưa bật hoặc chưa Update): {ex.Message}");
-                                _dbBuffer.Clear(); // Xóa buffer để tránh tràn RAM
-                            }
-                        }
+                        rsiResults = history.GetRsi(14);
+                        var latestRsi = rsiResults.LastOrDefault();
+                        if (latestRsi?.Rsi != null) tick.RSI = (double)latestRsi.Rsi;
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"Error fetching market data: {ex.Message} | Trace: {ex.StackTrace}");
+                    _logger.LogWarning($"Lỗi phân tích RSI của {symbol}: {ex.Message}");
                 }
 
-                // Chờ 2 giây trước khi gọi lần tiếp theo (tránh bị Binance chặn IP)
-                await Task.Delay(2000, stoppingToken);
+                string aiSignal = _aiSignals[symbol];
+
+                // Giải quyết triệt để lỗi thắt cổ chai CPU (CPU Bottleneck):
+                // Chỉ chạy model AI (ML.NET) 10 giây 1 lần cho mỗi symbol, thay vì mỗi 2 giây
+                if ((DateTime.UtcNow - _lastAIPredictionTime[symbol]).TotalSeconds > 10)
+                {
+                    try 
+                    {
+                        if (rsiResults != null && rsiResults.Any())
+                        {
+                            var rsiHistory = rsiResults.Where(x => x.Rsi.HasValue).Select(x => x.Rsi.Value).TakeLast(15);
+                            using var scope = _serviceProvider.CreateScope();
+                            var predictor = scope.ServiceProvider.GetRequiredService<IMarketPredictorService>();
+                            aiSignal = predictor.PredictSignal(rsiHistory);
+
+                            // Cập nhật Cache
+                            _aiSignals[symbol] = aiSignal;
+                            _lastAIPredictionTime[symbol] = DateTime.UtcNow;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning($"Lỗi AI cho {symbol}: {ex.Message}");
+                    }
+                }
+
+                if (tick.RSI.HasValue && (double.IsNaN(tick.RSI.Value) || double.IsInfinity(tick.RSI.Value)))
+                {
+                    tick.RSI = 0;
+                }
+
+                var marketDataDto = new MarketDataDto
+                {
+                    Symbol = tick.Symbol,
+                    Price = tick.Price,
+                    RSI = tick.RSI,
+                    Timestamp = tick.Timestamp,
+                    AISignal = aiSignal
+                };
+                
+                // _logger.LogInformation($"Symbol: {tick.Symbol} | Price: {tick.Price:C}");
+
+                // 1. Lưu giá vào Redis để Caching API
+                try 
+                {
+                    var cacheKey = $"LATEST_PRICE_{symbol}";
+                    var cacheOptions = new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) };
+                    await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(marketDataDto), cacheOptions, stoppingToken);
+                } catch { /* Ignore Redis error */ }
+                
+                // 2. Broadcast giá thời gian thực cho User đang theo dõi Symbol này qua SignalR
+                try
+                {
+                    await _hubContext.Clients.Group(symbol).SendAsync("ReceiveMarketUpdate", marketDataDto, stoppingToken);
+                } catch { /* Ignore SignalR error */ }
+
+                // 3. Gom lô (Batching) lưu vào SQL Server Database
+                dbBuffer.Add(tick);
+                if (dbBuffer.Count >= 15)
+                {
+                    try
+                    {
+                        using var scope = _serviceProvider.CreateScope();
+                        var repository = scope.ServiceProvider.GetRequiredService<IMarketDataRepository>();
+                        foreach (var item in dbBuffer) { await repository.AddTickAsync(item); }
+                        dbBuffer.Clear();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning($"Lỗi SQL Server ({symbol}): {ex.Message}");
+                        dbBuffer.Clear();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Lỗi bất ngờ ở symbol {symbol}: {ex.Message}");
             }
         }
     }

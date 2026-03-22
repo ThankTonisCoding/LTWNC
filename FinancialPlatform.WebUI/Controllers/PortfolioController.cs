@@ -1,11 +1,14 @@
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using FinancialPlatform.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinancialPlatform.WebUI.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class PortfolioController : ControllerBase
@@ -18,9 +21,11 @@ namespace FinancialPlatform.WebUI.Controllers
         }
 
         // Lấy danh sách Lệnh đang mở và Số dư ví
-        [HttpGet("{userId}")]
-        public async Task<IActionResult> GetPortfolio(string userId)
+        [HttpGet("current")]
+        public async Task<IActionResult> GetPortfolio()
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
             var portfolio = await _context.Portfolios.FirstOrDefaultAsync(p => p.UserId == userId);
             if (portfolio == null) 
                 return NotFound(new { Message = "User chưa được cấp ví ảo." });

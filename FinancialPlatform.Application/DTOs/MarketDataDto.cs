@@ -8,5 +8,6 @@ namespace FinancialPlatform.Application.DTOs
         public decimal Price { get; set; }
         public double? RSI { get; set; }
         public DateTime Timestamp { get; set; }
+        public string AISignal { get; set; } = "HOLD";
     }
 }

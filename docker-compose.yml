@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # 1. Cơ sở dữ liệu SQL Server (Linux)
+  sqldb:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=VnTrader_StrongPass2026!
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    restart: always
+
+  # 2. Redis Cache
+  redis_cache:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    restart: always
+
+  # 3. Web App Chính của chúng ta
+  web_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      # Ghi đè Connection Strings để chỏ sang container thay vì localhost
+      - ConnectionStrings__DefaultConnection=Server=sqldb,1433;Database=FinPlatformDB;User Id=sa;Password=VnTrader_StrongPass2026!;TrustServerCertificate=True;
+      - ConnectionStrings__RedisConnection=redis_cache:6379
+    ports:
+      - "8080:8080"
+    depends_on:
+      - sqldb
+      - redis_cache
+    restart: always
+
+volumes:
+  sqldata:
