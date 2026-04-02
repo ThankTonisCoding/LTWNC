@@ -4,13 +4,13 @@
     ViewData["Title"] = "Đăng Nhập Giao Dịch";
 }
 
-<div class="row justify-content-center mt-5">
+<div class="row justify-content-center mt-5 mb-5 relative">
     <div class="col-md-5">
-        <div class="card shadow">
-            <div class="card-header bg-dark text-white text-center">
-                <h4>Đăng Nhập Quản Lý Tài Sản</h4>
+        <div class="card glass-panel border-0 px-3 py-4 shadow-lg">
+            <div class="card-header bg-transparent border-0 text-center mb-2">
+                <h3 class="fw-bold" style="color: white; font-family: 'Outfit', sans-serif;">Đăng Nhập <span style="color: var(--accent-cyan)">Tài Sản</span></h3>
             </div>
-            <div class="card-body p-4">
+            <div class="card-body">
                 <form method="post">
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
                     <div class="form-floating mb-3">
@@ -23,11 +23,25 @@
                         <label asp-for="Input.Password">Mật khẩu</label>
                         <span asp-validation-for="Input.Password" class="text-danger"></span>
                     </div>
-                    <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-primary mb-3">VÀO THỊ TRƯỜNG</button>
-                    <div class="text-center">
-                        <p>Chưa có tài khoản? <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">Mở Tài khoản Nhận $10k Miễn phí</a></p>
+                    <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-primary-gradient rounded-pill mb-4 shadow">VÀO THỊ TRƯỜNG</button>
+                    
+                    <div class="d-flex align-items-center mb-4">
+                        <hr class="flex-grow-1" style="border-color: rgba(255,255,255,0.2)"/>
+                        <span class="mx-3 text-muted">HOẶC</span>
+                        <hr class="flex-grow-1" style="border-color: rgba(255,255,255,0.2)"/>
                     </div>
                 </form>
+
+                <form method="post" asp-page="/Login" asp-page-handler="Google" asp-route-returnUrl="@Model.ReturnUrl">
+                    <button type="submit" class="btn btn-outline-light w-100 rounded-pill fw-bold py-3 mb-4 shadow-sm d-flex align-items-center justify-content-center" style="background: rgba(255,255,255,0.05); transition: background 0.3s;">
+                        <img src="https://img.icons8.com/color/24/000000/google-logo.png" class="me-2" />
+                        Tiếp tục với Google
+                    </button>
+                </form>
+
+                <div class="text-center mt-2">
+                    <p class="text-muted">Chưa có tài khoản? <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl" class="fw-bold text-success text-decoration-none">Mở Tài khoản Nhận $10k</a></p>
+                </div>
             </div>
         </div>
     </div>

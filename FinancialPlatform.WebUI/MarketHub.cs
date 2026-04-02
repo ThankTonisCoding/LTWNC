@@ -10,5 +10,10 @@ namespace FinancialPlatform.WebUI.Hubs
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, symbol);
         }
+
+        public async Task LeaveGroup(string symbol)
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, symbol);
+        }
     }
 }

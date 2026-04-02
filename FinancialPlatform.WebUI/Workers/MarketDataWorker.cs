@@ -109,7 +109,7 @@ namespace FinancialPlatform.WebUI.Workers
                     {
                         rsiResults = history.GetRsi(14);
                         var latestRsi = rsiResults.LastOrDefault();
-                        if (latestRsi?.Rsi != null) tick.RSI = (double)latestRsi.Rsi;
+                        if (latestRsi != null && latestRsi.Rsi.HasValue) tick.RSI = latestRsi.Rsi.Value;
                     }
                 }
                 catch (Exception ex)

@@ -4,17 +4,17 @@
     ViewData["Title"] = "Market Dashboard";
 }
 
-<div class="text-center mb-4">
-    <h1 class="display-4">Hệ thống Giám sát Thị trường</h1>
-    <p>Dữ liệu giao dịch theo thời gian thực (Powered by SignalR & Binance)</p>
+<div class="text-center mb-5 mt-4">
+    <h1 class="display-3 fw-bold" style="background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Market Dashboard</h1>
+    <p class="fs-5 text-muted">Real-time Trading Experience (Powered by SignalR & Binance)</p>
 </div>
 
 <div class="row justify-content-center">
     <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <h4 class="my-0 font-weight-normal">Tỷ giá Tài sản</h4>
-                <select id="symbol-selector" class="form-select form-select-sm w-auto">
+        <div class="card glass-panel border-0">
+            <div class="card-header d-flex justify-content-between align-items-center bg-transparent border-0 pt-3 pb-0">
+                <h4 class="my-0 fw-bold">Live Assets Rate</h4>
+                <select id="symbol-selector" class="form-select form-select-sm w-auto fw-bold shadow-none" style="border-radius: 10px;">
                     <option value="BTCUSDT" selected>Bitcoin (BTC)</option>
                     <option value="ETHUSDT">Ethereum (ETH)</option>
                     <option value="BNBUSDT">Binance Coin (BNB)</option>
@@ -23,14 +23,19 @@
                     <option value="XRPUSDT">Ripple (XRP)</option>
                 </select>
             </div>
-            <div class="card-body text-center">
-                <h1 class="card-title pricing-card-title" id="price-display">Đang tải...</h1>
-                <ul class="list-unstyled mt-3 mb-4">
-                    <li>Chỉ báo RSI (14): <strong id="rsi-display">--</strong></li>
-                    <li>AI Dự báo: <strong id="ai-signal-display" class="fs-4">CHỜ ĐỢI</strong></li>
-                    <li>Cập nhật lần cuối: <span id="time-display">--</span></li>
-                </ul>
-                <button type="button" class="btn btn-lg btn-block btn-outline-primary">Xem Chi tiết Biểu đồ</button>
+            <div class="card-body text-center py-4">
+                <h1 class="card-title pricing-card-title mb-4" id="price-display">Đang tải...</h1>
+                <ul class="list-unstyled mt-3 mb-4 fs-5 w-75 mx-auto text-start">
+                    <li class="mb-3 d-flex justify-content-between border-bottom border-secondary pb-1">
+                        <span class="text-muted fw-bold">Chỉ báo RSI (14):</span> <strong id="rsi-display">--</strong>
+                    </li>
+                    <li class="mb-3 d-flex justify-content-between border-bottom border-secondary pb-1">
+                        <span class="text-muted fw-bold">AI Dự báo:</span> <strong id="ai-signal-display">CHỜ ĐỢI</strong>
+                    </li>
+                    <li class="d-flex justify-content-between">
+                        <span class="text-muted text-sm">Cập nhật lúc:</span> <span class="text-sm" id="time-display">--</span>
+                    </li>
+                <button type="button" onclick="document.getElementById('tvchart').scrollIntoView({ behavior: 'smooth', block: 'center' });" class="btn btn-primary-gradient btn-lg w-100 rounded-pill mt-3 shadow"><i class="bi bi-bar-chart-fill me-2"></i>Xem Chi Tiết Biểu Đồ</button>
             </div>
         </div>
     </div>
@@ -38,29 +43,37 @@
 
 <!-- Container chứa biểu đồ TradingView -->
 <div class="row justify-content-center mt-4">
-    <div class="col-md-8">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <div id="tvchart" style="width: 100%; height: 400px;"></div>
+    <div class="col-md-10">
+        <div class="card glass-panel border-0 mb-5">
+            <div class="card-body p-0 overflow-hidden" style="border-radius: var(--card-radius) var(--card-radius) 0 0;">
+                <div id="tvchart" style="width: 100%; height: 450px;"></div>
             </div>
-            <div class="card-footer text-center bg-white py-4">
+            <div class="card-footer text-center py-4 bg-transparent border-0">
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <h5 class="mb-3 font-weight-bold mx-auto text-primary">Giao Dịch Nhanh (<span id="trade-symbol">BTC</span>)</h5>
-                    <div class="input-group mb-3 mx-auto" style="max-width:300px;">
-                        <span class="input-group-text bg-light fw-bold">Khối lượng</span>
-                        <input type="number" id="trade-amount" class="form-control text-center fw-bold" value="0.01" step="0.01" min="0.01">
+                    <h5 class="mb-3 font-weight-bold mx-auto text-white">Thao Tác Nhanh (<span id="trade-symbol" style="color: var(--accent-cyan)">BTC</span>)</h5>
+                    <div class="input-group mb-4 mx-auto shadow-sm" style="max-width:350px; border-radius: 12px; overflow: hidden;">
+                        <span class="input-group-text border-0" style="background: rgba(255,255,255,0.1); color: white;">Khối lượng</span>
+                        <input type="number" id="trade-amount" class="form-control text-center fw-bold border-0 bg-transparent text-white" value="0.01" step="0.01" min="0.01">
                     </div>
-                    <div>
-                        <button id="btn-buy" class="btn btn-success btn-lg mx-2 px-5 fw-bold shadow-sm">MUA VÀO (LONG)</button>
-                        <button id="btn-sell" class="btn btn-danger btn-lg mx-2 px-5 fw-bold shadow-sm">BÁN RA (SHORT)</button>
+                    <div class="d-flex justify-content-center gap-3">
+                        <button id="btn-buy" class="btn btn-success btn-lg px-5 fw-bold rounded-pill text-white shadow"><i class="bi bi-graph-up me-2"></i>MUA KHỚP LỆNH</button>
+                        <button id="btn-sell" class="btn btn-danger btn-lg px-5 fw-bold rounded-pill text-white shadow"><i class="bi bi-graph-down me-2"></i>BÁN KHỐNG</button>
                     </div>
-                    <div id="trade-feedback" class="mt-3 fw-bold fs-5"></div>
+                    <div id="trade-feedback" class="mt-4 fw-bold fs-5"></div>
                 }
                 else
                 {
-                    <div class="alert alert-warning mb-0 fs-5">
-                        Vui lòng <a asp-page="/Login" class="fw-bold">Đăng nhập</a> hoặc <a asp-page="/Register" class="text-success fw-bold">Mở Tài khoản</a> để sử dụng tính năng Đặt Lệnh trực tiếp.
+                    <div class="py-5 px-3 mx-auto" style="max-width: 600px; background: rgba(0,0,0,0.2); border-radius: 20px; border: 1px dashed rgba(255,255,255,0.1);">
+                        <div class="mb-3">
+                            <span class="badge bg-primary bg-opacity-25 text-primary rounded-pill px-3 py-2 fs-6 mb-2 border border-primary border-opacity-50">Yêu cầu quyền truy cập</span>
+                        </div>
+                        <h4 class="text-white fw-bold mb-3">Tham gia Giao dịch Trực tiếp cùng Hàng ngàn Nhà đầu tư</h4>
+                        <p class="text-muted fs-5 mb-4 px-4">Đăng nhập ngay để mở khóa công cụ Đặt Lệnh (Long/Short), theo dõi Lợi nhuận (P&L JPY) và các chỉ báo AI độc quyền.</p>
+                        <div class="d-flex justify-content-center gap-3">
+                            <a asp-page="/Login" class="btn btn-outline-light btn-lg px-5 rounded-pill fw-bold">Đăng nhập</a>
+                            <a asp-page="/Register" class="btn btn-primary-gradient btn-lg px-5 rounded-pill fw-bold shadow">Mở Tài Khoản Mới</a>
+                        </div>
                     </div>
                 }
             </div>
@@ -79,8 +92,17 @@
     let lastPrice = 0; // Biến để lưu giá trị trước đó, dùng cho việc so sánh
     let lastChartTime = 0; // Biến để lưu mốc thời gian cuối cùng vẽ lên biểu đồ
 
-    // Khởi tạo Biểu đồ TradingView
-    const chartOptions = { layout: { textColor: 'black', background: { type: 'solid', color: 'white' } } };
+    // Khởi tạo Biểu đồ TradingView (Cập nhật dark mode)
+    const chartOptions = { 
+        layout: { 
+            textColor: '#d1d5db', 
+            background: { type: 'solid', color: '#111827' } 
+        },
+        grid: {
+            vertLines: { color: 'rgba(255, 255, 255, 0.05)' },
+            horzLines: { color: 'rgba(255, 255, 255, 0.05)' }
+        }
+    };
     const chart = LightweightCharts.createChart(document.getElementById('tvchart'), chartOptions);
     const lineSeries = chart.addLineSeries({ 
         color: '#2962FF', 

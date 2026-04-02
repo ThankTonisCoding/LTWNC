@@ -1,5 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  /* Premium Dark Mode / Dark-Gradient Theme */
+  --bg-primary: #0f172a;      /* Slate 900 */
+  --bg-secondary: #1e293b;    /* Slate 800 */
+  --text-primary: #f8fafc;    /* Slate 50 */
+  --text-secondary: #94a3b8;  /* Slate 400 */
+  --accent-blue: #3b82f6;     /* Blue 500 */
+  --accent-cyan: #06b6d4;     /* Cyan 500 */
+  --accent-green: #10b981;    /* Emerald 500 */
+  --accent-red: #ef4444;      /* Red 500 */
+  
+  --glass-bg: rgba(30, 41, 59, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  
+  --card-radius: 20px;
+}
+
 html {
   font-size: 14px;
+  position: relative;
+  min-height: 100%;
 }
 
 @media (min-width: 768px) {
@@ -8,15 +30,131 @@ html {
   }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
-}
-
 body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-primary);
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+    radial-gradient(at 50% 0%, hsla(225,39%,30%,0.2) 0, transparent 50%), 
+    radial-gradient(at 100% 0%, hsla(339,49%,30%,0.2) 0, transparent 50%);
+  color: var(--text-primary);
   margin-bottom: 60px;
+  padding-top: 20px;
+}
+
+h1, h2, h3, h4, strong, .navbar-brand {
+    font-family: 'Outfit', sans-serif;
+}
+
+/* Glassmorphism Classes */
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--card-radius);
+    box-shadow: var(--glass-shadow);
+    color: var(--text-primary);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-panel:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+}
+
+.glass-nav {
+    background: rgba(15, 23, 42, 0.85) !important;
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--glass-border) !important;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Overrides Bootstrap */
+.card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.card-header {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-bottom: 1px solid var(--glass-border);
+    border-top-left-radius: var(--card-radius) !important;
+    border-top-right-radius: var(--card-radius) !important;
+}
+
+.card-footer {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-top: 1px solid var(--glass-border);
+    border-bottom-left-radius: var(--card-radius) !important;
+    border-bottom-right-radius: var(--card-radius) !important;
+}
+
+.text-dark { color: #e2e8f0 !important; }
+.text-muted { color: var(--text-secondary) !important; }
+.bg-white { background: transparent !important; }
+.bg-light { background: rgba(255, 255, 255, 0.1) !important; color: white; border: 1px solid var(--glass-border); }
+
+.nav-link {
+    color: var(--text-secondary) !important;
+    transition: color 0.2s ease;
+}
+
+.nav-link:hover, .navbar-brand {
+    color: white !important;
+    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.form-select, .form-control {
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-border);
+    color: white;
+}
+
+.form-select:focus, .form-control:focus {
+    background-color: rgba(0, 0, 0, 0.3);
+    color: white;
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 0 0.25rem rgba(6, 182, 212, 0.25);
+}
+
+/* Custom Buttons */
+.btn-primary-gradient {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+    color: white;
+    border: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(6, 182, 212, 0.4);
+}
+
+.btn-primary-gradient:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(6, 182, 212, 0.6);
+}
+
+.btn-success { background: var(--accent-green); border: none; }
+.btn-danger { background: var(--accent-red); border: none; }
+
+.btn-success:hover, .btn-danger:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+/* Text glow */
+.pricing-card-title {
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    font-size: 3rem;
+  font-weight: 700;
+}
+
+/* Alert styles */
+.alert-warning {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #fcd34d;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 12px;
 }

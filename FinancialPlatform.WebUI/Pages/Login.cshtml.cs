@@ -37,6 +37,13 @@ namespace FinancialPlatform.WebUI.Pages
             ReturnUrl = returnUrl ?? Url.Content("~/");
         }
 
+        public IActionResult OnPostGoogle(string? returnUrl = null)
+        {
+            var redirectUrl = Url.Page("/ExternalLogin", pageHandler: "Callback", values: new { returnUrl });
+            var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
+            return new ChallengeResult("Google", properties);
+        }
+
         public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
         {
             returnUrl ??= Url.Content("~/");
