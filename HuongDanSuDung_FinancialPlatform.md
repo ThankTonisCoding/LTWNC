@@ -79,4 +79,37 @@ Khu vực **Thao Tác Nhanh** nằm ngay dưới biểu đồ TradingView (yêu 
 
 ---
 
+## 🛠️ 6. Công Nghệ Được Sử Dụng (Tech Stack)
+
+Dự án được xây dựng theo chuẩn phần mềm **Doanh nghiệp (Enterprise-level)** với Kiến trúc Sạch (Clean Architecture) và Kiến trúc Microservices quy mô nhỏ:
+
+**1. Backend & Hệ thống Cốt lõi (Core Engine):**
+* **.NET 8 (C#)**: Nền tảng cốt lõi sử dụng ASP.NET Core MVC & Web API.
+* **Entity Framework Core 8**: Truy vấn cơ sở dữ liệu (ORM) với mô hình Code-First Migration.
+* **SQL Server**: Lưu trữ dữ liệu giao dịch mạnh mẽ, đảm bảo tính ACID.
+
+**2. Tối ưu Hiệu năng & Real-time:**
+* **Redis Cache (StackExchange.Redis)**: Lưu trữ tạm thời (Caching) dữ liệu biến động nhanh từ Binance API giúp giảm tải Database.
+* **SignalR**: Công nghệ WebSocket để đẩy dữ liệu giá (Tick Data) trực tiếp từ Server xuống Client (Trình duyệt) theo thời gian thực (Real-time).
+* **Hosted Services (Background Workers)**: Các tác vụ chạy ngầm độc lập (`MarketDataWorker`, `RiskManagementWorker`) dể quét dữ liệu thị trường và quét cắt lỗ (Stop-loss) liên tục 24/7.
+* **Polly**: Tích hợp cơ chế Wait-and-Retry để chống Rate-Limiting khi gọi API tài chính bên thứ 3.
+
+**3. Trí Tuệ Nhân Tạo (AI / ML.NET):**
+* **Microsoft ML.NET**: Sử dụng thuật toán Hồi quy tuyến tính (SDCA Regression Trainer) để học hỏi các khung giá chuẩn hóa (RSI Time-series) và dự báo xu hướng tương lai dể đưa lệnh Khuyến nghị (BUY/SELL/HOLD).
+
+**4. Bảo Mật & Xác Thực (Security):**
+* **ASP.NET Core Identity**: Cung cấp Cookie/Token Login, xác thực bảo mật chuẩn.
+* **Google OAuth 2.0**: Cho phép người dùng đăng nhập SSO qua Google.
+* **Optimistic Concurrency Control**: Sử dụng `[Timestamp] RowVersion` để chống Race-Condition (trùng lặp giao dịch khi nhiều người dùng thao tác cùng milisecond).
+* **Role-based Access Control (RBAC)**: Tách quyền hạn bảo vệ API của Admin khỏi Users thường.
+
+**5. Frontend & UI/UX:**
+* **Razor Pages & Bootstrap 5**: Code Giao diện Server-side rendering (SSR) tối ưu SEO và tốc độ.
+* **Chart.js & TradingView Widget**: Cung cấp biểu đồ trực quan.
+
+**6. Testing (Kiểm thử):**
+* **xUnit & Moq**: Dựng Test case cô lập (Mocking) và InMemoryDatabase để kiểm thử tự động các luồng Trading Logic quan trọng.
+
+---
+
 *Tài liệu này được biên soạn bởi Nhóm 6. Cảm ơn bạn đã trải nghiệm hệ thống!*

@@ -11,7 +11,7 @@
                 <h4 class="my-0 fw-bold" style="color: var(--accent-green)">Tổng quan Tài khoản</h4>
             </div>
             <div class="card-body">
-                <h5 class="mb-3"><span class="text-muted">Số dư Tiền mặt:</span> <span id="cash-balance" class="text-white fw-bold fs-4 ms-2">Đang tải...</span></h5>
+                <h5 class="mb-3"><span class="text-muted">Số dư Tiền mặt:</span> <span id="cash-balance" class="text-white fw-bold fs-4 ms-2">@Model.CashBalance.ToString("C")</span></h5>
                 <h5 class="mb-3"><span class="text-muted">Lãi/Lỗ Ước tính:</span> <span id="total-pnl" class="fw-bold ms-2 fs-4">Đang tải...</span></h5>
                 <hr style="border-color: rgba(255,255,255,0.2)" />
                 <h4 class="mt-3"><span class="text-muted">Tổng Tài sản:</span> <span id="total-equity" class="fw-bold" style="color: var(--accent-cyan)">Đang tải...</span></h4>
@@ -43,7 +43,24 @@
                             </tr>
                         </thead>
                         <tbody id="positions-table" class="text-white">
-                            <tr><td colspan="6" class="text-center py-5 text-muted">Đang đồng bộ dữ liệu danh mục cùng Server...</td></tr>
+                            @if (!Model.OpenOrders.Any())
+                            {
+                                <tr><td colspan="6" class="text-center py-5 text-muted">Hiện tại bạn không có vị thế mở nào cả.</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var pos in Model.OpenOrders)
+                                {
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05)">
+                                        <td class="ps-4 py-3"><strong class="fs-5">@pos.Symbol</strong></td>
+                                        <td><span class="badge @(pos.Side == "Buy" ? "bg-success" : "bg-danger") px-3 py-2 rounded-pill shadow-sm">@(pos.Side == "Buy" ? "Mua (Long)" : "Bán (Short)")</span></td>
+                                        <td class="fw-bold">@pos.Amount</td>
+                                        <td class="text-muted fw-bold">@pos.EntryPrice.ToString("C")</td>
+                                        <td class="fw-bold">--</td>
+                                        <td class="pe-4 fs-5"><strong style="text-shadow: 0 0 10px rgba(255,255,255,0.2)">--</strong></td>
+                                    </tr>
+                                }
+                            }
                         </tbody>
                     </table>
                 </div>
@@ -57,32 +74,14 @@
 <script>
     "use strict";
     
-    let cashBalance = 0;
-    let openPositions = [];
+    let cashBalance = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CashBalance));
+    let openPositions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OpenOrders));
 
     const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
-    async function initPortfolio() {
-        try {
-            const userId = "@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value";
-            if (!userId) return;
-            
-            const response = await fetch(`/api/portfolio/current`);
-            
-            if (response.ok) {
-                const data = await response.json();
-                cashBalance = data.cashBalance;
-                openPositions = data.openOrders || [];
-                
-                document.getElementById("cash-balance").innerText = formatter.format(cashBalance);
-                renderPositions(0); // initial render with 0 current price
-            } else {
-                document.getElementById("cash-balance").innerText = "Error loading";
-            }
-        } catch (err) {
-            console.error("Lỗi khi tải Portfolio", err);
-        }
-    }
+    // Cập nhật DOM ban đầu
+    document.getElementById("cash-balance").innerText = formatter.format(cashBalance);
+    renderPositions(0); // initial render with 0 current price
 
     function renderPositions(currentPrice) {
         const tbody = document.getElementById("positions-table");
@@ -158,6 +157,6 @@
         }
     }
 
-    // Khởi chạy
-    initPortfolio().then(() => startSignalR());
+    // Khởi chạy SignalR
+    startSignalR();
 </script>

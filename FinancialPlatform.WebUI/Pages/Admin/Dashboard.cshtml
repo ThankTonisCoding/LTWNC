@@ -21,7 +21,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-uppercase mb-1">TỔNG NGƯỜI DÙNG</div>
-                            <div class="h2 mb-0 font-weight-bold" id="metric-users">--</div>
+                            <div class="h2 mb-0 font-weight-bold">@Model.Metrics.TotalUsers</div>
                         </div>
                     </div>
                 </div>
@@ -35,7 +35,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-uppercase mb-1">TỔNG TIỀN ĐÃ BƠM (USD)</div>
-                            <div class="h2 mb-0 font-weight-bold" id="metric-cash">--</div>
+                            <div class="h2 mb-0 font-weight-bold">@Model.Metrics.TotalCash.ToString("C")</div>
                         </div>
                     </div>
                 </div>
@@ -49,7 +49,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-uppercase mb-1">TRADING VOLUME</div>
-                            <div class="h2 mb-0 font-weight-bold" id="metric-volume">--</div>
+                            <div class="h2 mb-0 font-weight-bold">@Model.Metrics.TotalVolume.ToString("C")</div>
                         </div>
                     </div>
                 </div>
@@ -63,7 +63,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-uppercase mb-1">THỐNG KÊ LỆNH</div>
-                            <div class="h4 mb-0 font-weight-bold" id="metric-orders">--</div>
+                            <div class="h4 mb-0 font-weight-bold">@Model.Metrics.OrderStats.Pending Mới / @Model.Metrics.OrderStats.Filled Khớp / @Model.Metrics.OrderStats.Closed Đóng</div>
                         </div>
                     </div>
                 </div>
@@ -94,9 +94,24 @@
                     <h6 class="m-0 font-weight-bold text-primary">Lịch sử Hoạt động (Live)</h6>
                 </div>
                 <div class="card-body p-0" style="height: 380px; overflow-y: auto;">
-                    <ul class="list-group list-group-flush" id="recent-trades-list">
-                        <li class="list-group-item text-center mt-4">Đang đồng bộ dữ liệu...</li>
-                    </ul>
+                        @if (Model.Metrics.RecentTrades.Count == 0)
+                        {
+                            <li class='list-group-item text-center mt-3 text-muted'>Chưa có giao dịch nào.</li>
+                        }
+                        else
+                        {
+                            @foreach (var t in Model.Metrics.RecentTrades)
+                            {
+                                var icon = t.Type == "Trade" ? "🔵" : (t.Type == "Profit" ? "🟢" : "🔴");
+                                <li class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <strong class="mb-1">@t.UserName.Split("@@")[0]</strong>
+                                        <small class="text-muted">@t.Timestamp.ToLocalTime().ToString("HH:mm:ss")</small>
+                                    </div>
+                                    <p class="mb-1 text-secondary" style="font-size:0.9rem">@icon @t.Description</p>
+                                </li>
+                            }
+                        }
                 </div>
             </div>
         </div>
@@ -107,72 +122,29 @@
     <!-- Tải Chart.js từ CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-        let donutChart = null;
-
-        async function loadAdminData() {
-            try {
-                const response = await fetch('/api/admin/metrics');
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    document.getElementById("metric-users").innerText = data.totalUsers;
-                    document.getElementById("metric-cash").innerText = formatter.format(data.totalCash);
-                    document.getElementById("metric-volume").innerText = formatter.format(data.totalVolume);
-                    document.getElementById("metric-orders").innerText = 
-                        `${data.orderStats.pending} Mới / ${data.orderStats.filled} Khớp / ${data.orderStats.closed} Đóng`;
-
-                    // Vẽ Biểu Đồ
-                    const ctx = document.getElementById('orderChart').getContext('2d');
-                    const chartData = [data.orderStats.pending, data.orderStats.filled, data.orderStats.closed];
-                    
-                    if (donutChart) {
-                        donutChart.data.datasets[0].data = chartData;
-                        donutChart.update();
-                    } else {
-                        donutChart = new Chart(ctx, {
-                            type: 'doughnut',
-                            data: {
-                                labels: ['Chờ khớp (Pending)', 'Khớp (Filled)', 'Đã chốt (Closed)'],
-                                datasets: [{
-                                    data: chartData,
-                                    backgroundColor: ['#ffc107', '#28a745', '#dc3545'],
-                                    hoverBorderColor: "rgba(234, 236, 244, 1)",
-                                }],
-                            },
-                            options: {
-                                maintainAspectRatio: false,
-                                cutout: '75%',
-                            }
-                        });
-                    }
-
-                    // Render Lịch Sử
-                    const listEl = document.getElementById("recent-trades-list");
-                    listEl.innerHTML = "";
-                    if (data.recentTrades.length === 0) {
-                        listEl.innerHTML = "<li class='list-group-item text-center mt-3 text-muted'>Chưa có giao dịch nào.</li>";
-                    }
-                    data.recentTrades.forEach(t => {
-                        const date = new Date(t.timestamp).toLocaleTimeString();
-                        let icon = t.type === 'Trade' ? '🔵' : (t.type === 'Profit' ? '🟢' : '🔴');
-                        listEl.innerHTML += `
-                            <li class="list-group-item">
-                                <div class="d-flex w-100 justify-content-between">
-                                    <strong class="mb-1">${t.userName.split('@@')[0]}</strong>
-                                    <small class="text-muted">${date}</small>
-                                </div>
-                                <p class="mb-1 text-secondary" style="font-size:0.9rem">${icon} ${t.description}</p>
-                            </li>`;
-                    });
+        document.addEventListener('DOMContentLoaded', function() {
+            var chartData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new int[] { 
+                Model.Metrics.OrderStats.Pending, 
+                Model.Metrics.OrderStats.Filled, 
+                Model.Metrics.OrderStats.Closed 
+            }));
+            
+            var ctx = document.getElementById('orderChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Chờ khớp (Pending)', 'Khớp (Filled)', 'Đã chốt (Closed)'],
+                    datasets: [{
+                        data: chartData,
+                        backgroundColor: ['#ffc107', '#28a745', '#dc3545'],
+                        hoverBorderColor: "rgba(234, 236, 244, 1)",
+                    }],
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    cutout: '75%',
                 }
-            } catch (err) {
-                console.error("Lỗi tải Admin Data:", err);
-            }
-        }
-
-        window.addEventListener('DOMContentLoaded', loadAdminData);
-        // Tự động làm mới 5 giây lần để theo dõi real-time
-        setInterval(loadAdminData, 5000);
+            });
+        });
     </script>
 }
